@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SmartLoja – Your Digital Market Ledger</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --emerald: #065f46;
+    --emerald-mid: #059669;
+    --emerald-light: #d1fae5;
+    --emerald-xlight: #f0fdf4;
+    --gold: #d97706;
+    --gold-light: #fef3c7;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --ink: #0f1c14;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --white: #ffffff;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #f8fdf9;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, .font-display { font-family: 'Syne', sans-serif; }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  .app-header {
+    background: linear-gradient(135deg, var(--emerald) 0%, #064e3b 60%, #022c22 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .app-header::after {
+    content: '';
+    position: absolute;
+    right: -60px;
+    top: -60px;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+    pointer-events: none;
+  }
+  .app-header::before {
+    content: '';
+    position: absolute;
+    left: -30px;
+    bottom: -80px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.03);
+    pointer-events: none;
+  }
+
+  /* Pulse animation */
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.6; }
+    70% { transform: scale(1.35); opacity: 0; }
+    100% { transform: scale(1.35); opacity: 0; }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(0.96); }
+  }
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .pulse-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(5,150,105,0.35);
+    animation: pulse-ring 1.6s ease-out infinite;
+  }
+  .pulse-ring-2 {
+    animation-delay: 0.5s;
+  }
+  .mic-btn {
+    animation: pulse-dot 2s ease-in-out infinite;
+    position: relative;
+    z-index: 2;
+  }
+  .mic-btn:disabled { animation: none; }
+
+  .loading-dots span {
+    animation: blink 1.2s ease-in-out infinite;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  .shimmer-card {
+    background: linear-gradient(90deg, #e0f2e9 25%, #c6ecd9 50%, #e0f2e9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+  }
+
+  .fade-up { animation: fade-up 0.4s ease forwards; }
+
+  /* Tab toggle */
+  .tab-btn { transition: all 0.2s ease; }
+  .tab-btn.active {
+    background: var(--emerald);
+    color: white;
+    box-shadow: 0 2px 8px rgba(6,95,70,0.3);
+  }
+
+  /* Cards */
+  .summary-card {
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: white;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+
+  /* Transaction rows */
+  .txn-row {
+    animation: fade-up 0.35s ease forwards;
+    border-left: 3px solid transparent;
+  }
+  .txn-row.income { border-left-color: var(--emerald-mid); }
+  .txn-row.expense { border-left-color: var(--red); }
+  .txn-row.debt { border-left-color: var(--gold); }
+
+  /* AI card */
+  .ai-result-card {
+    border: 2px solid var(--emerald-light);
+    border-radius: 14px;
+    background: var(--emerald-xlight);
+  }
+
+  /* Scrollbar */
+  .txn-list::-webkit-scrollbar { width: 4px; }
+  .txn-list::-webkit-scrollbar-track { background: #f1f5f1; }
+  .txn-list::-webkit-scrollbar-thumb { background: #a7f3d0; border-radius: 4px; }
+
+  select, input {
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  select:focus, input:focus {
+    border-color: var(--emerald-mid) !important;
+    box-shadow: 0 0 0 3px rgba(5,150,105,0.12);
+  }
+
+  .btn-primary {
+    background: var(--emerald);
+    color: white;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  }
+  .btn-primary:hover { background: #047857; box-shadow: 0 4px 14px rgba(6,95,70,0.35); }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; box-shadow: none; }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-family: 'Syne', sans-serif;
+    letter-spacing: 0.03em;
+  }
+  .badge-income { background: var(--emerald-light); color: var(--emerald); }
+  .badge-expense { background: var(--red-light); color: var(--red); }
+  .badge-debt { background: var(--gold-light); color: var(--gold); }
+
+  /* Listening animation */
+  @keyframes wave {
+    0%, 100% { height: 6px; }
+    50% { height: 22px; }
+  }
+  .wave-bar {
+    width: 3px;
+    border-radius: 3px;
+    background: var(--emerald-mid);
+    animation: wave 0.8s ease-in-out infinite;
+  }
+  .wave-bar:nth-child(1) { animation-delay: 0s; }
+  .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+  .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+  .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+  .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+  .wave-bar:nth-child(6) { animation-delay: 0.3s; }
+  .wave-bar:nth-child(7) { animation-delay: 0.2s; }
+
+  .section-card {
+    background: white;
+    border-radius: 20px;
+    border: 1px solid #e8f5ed;
+    box-shadow: 0 2px 12px rgba(6,95,70,0.05);
+  }
+
+  .net-positive { background: linear-gradient(135deg, #065f46, #047857); color: white; }
+  .net-negative { background: linear-gradient(135deg, #991b1b, #dc2626); color: white; }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="app-header px-4 py-5 md:px-8 md:py-7 relative z-10">
+  <div class="max-w-3xl mx-auto flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center text-2xl border border-white/20 backdrop-blur-sm">🛍️</div>
+      <div>
+        <h1 class="font-display text-white text-2xl md:text-3xl font-800 leading-tight tracking-tight" style="font-weight:800;">SmartLoja</h1>
+        <p class="text-emerald-200 text-xs md:text-sm font-medium" style="color:#a7f3d0;letter-spacing:0.04em;">YOUR DIGITAL MARKET LEDGER</p>
+      </div>
+    </div>
+    <div class="flex flex-col items-end gap-1">
+      <div id="live-date" class="text-white/60 text-xs font-medium"></div>
+      <div class="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1 border border-white/20">
+        <span class="w-2 h-2 rounded-full bg-green-400 inline-block" style="box-shadow:0 0 6px #4ade80;"></span>
+        <span class="text-white/80 text-xs font-semibold">LIVE</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-4 py-6 md:px-6 space-y-6 relative z-10">
+
+  <!-- ===== VOICE ASSISTANT ===== -->
+  <div class="section-card p-5 md:p-6">
+    <div class="flex items-center gap-2 mb-4">
+      <span class="text-xl">🎙️</span>
+      <div>
+        <h2 class="font-display text-base font-bold text-gray-800" style="font-weight:700;">Voice Assistant</h2>
+        <p class="text-xs text-gray-500">Pidgin AI Simulation – Speak your sales!</p>
+      </div>
+      <span class="ml-auto badge" style="background:#fef3c7;color:#92400e;font-size:10px;">✨ AI POWERED</span>
+    </div>
+
+    <!-- Mic button area -->
+    <div class="flex flex-col items-center gap-3 py-4">
+      <div class="relative flex items-center justify-center w-20 h-20">
+        <div class="pulse-ring"></div>
+        <div class="pulse-ring pulse-ring-2"></div>
+        <button id="mic-btn" onclick="startListening()" class="mic-btn w-20 h-20 rounded-full flex items-center justify-center shadow-lg border-4 border-emerald-200" style="background:var(--emerald);color:white;cursor:pointer;">
+          <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3"/>
+            <path d="M5 10a7 7 0 0 0 14 0"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="9" y1="22" x2="15" y2="22"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Listening wave -->
+      <div id="listening-wave" class="hidden items-center gap-1 h-8">
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+
+      <p id="mic-label" class="text-sm font-semibold text-gray-600">Tap to Speak</p>
+    </div>
+
+    <!-- Dropdown + Process button (hidden until mic is tapped) -->
+    <div id="voice-panel" class="hidden fade-up space-y-3 mt-2">
+      <div>
+        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1.5">Select a transaction (Pidgin):</label>
+        <select id="voice-select" class="w-full border border-gray-200 rounded-10 px-3 py-2.5 text-sm text-gray-700 bg-white" style="border-radius:10px;">
+          <option value="">— Choose what you said —</option>
+          <option value="rice">🛒 "I sell 3 bags of rice for 150,000 Naira cash"</option>
+          <option value="oil">💧 "Customer buy 2 gallons of oil but he never pay, na credit"</option>
+          <option value="security">🔒 "I pay 5,000 Naira for market security and clean up today"</option>
+        </select>
+      </div>
+      <button onclick="processVoice()" id="process-btn" class="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2">
+        🗣️ Press to Process Voice (Simulate AI)
+      </button>
+    </div>
+
+    <!-- Loading state -->
+    <div id="ai-loading" class="hidden text-center py-4">
+      <div class="shimmer-card rounded-xl px-4 py-3 inline-flex items-center gap-2">
+        <span class="text-lg">🤖</span>
+        <span class="text-sm font-semibold" style="color:var(--emerald);">SmartLoja AI dey think<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span></span>
+      </div>
+    </div>
+
+    <!-- AI Result -->
+    <div id="ai-result" class="hidden fade-up mt-4 ai-result-card p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-base">✅</span>
+        <span class="font-display text-sm font-bold" style="color:var(--emerald);font-weight:700;">SmartLoja AI don parse am!</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <div class="bg-white rounded-lg p-2.5 border border-emerald-100">
+          <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Type</div>
+          <div id="ai-type" class="font-semibold mt-0.5 text-gray-800">—</div>
+        </div>
+        <div class="bg-white rounded-lg p-2.5 border border-emerald-100">
+          <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Item</div>
+          <div id="ai-item" class="font-semibold mt-0.5 text-gray-800">—</div>
+        </div>
+        <div class="bg-white rounded-lg p-2.5 border border-emerald-100">
+          <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Amount</div>
+          <div id="ai-amount" class="font-semibold mt-0.5" style="color:var(--emerald);">—</div>
+        </div>
+        <div class="bg-white rounded-lg p-2.5 border border-emerald-100">
+          <div class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Status</div>
+          <div id="ai-status" class="font-semibold mt-0.5 text-gray-800">—</div>
+        </div>
+      </div>
+      <button onclick="addAiToLedger()" id="add-ai-btn" class="btn-primary w-full py-2.5 text-sm mt-3">
+        ➕ Add to My Ledger
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== MANUAL LEDGER FORM ===== -->
+  <div class="section-card p-5 md:p-6">
+    <div class="flex items-center gap-2 mb-4">
+      <span class="text-xl">📝</span>
+      <div>
+        <h2 class="font-display text-base font-bold text-gray-800" style="font-weight:700;">Quick Manual Entry</h2>
+        <p class="text-xs text-gray-500">Type your transaction quickly</p>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 bg-gray-100 p-1 rounded-xl mb-4">
+      <button id="tab-in" onclick="setTab('in')" class="tab-btn active flex-1 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5">
+        💚 Money In
+      </button>
+      <button id="tab-out" onclick="setTab('out')" class="tab-btn flex-1 py-2 rounded-lg text-sm font-semibold text-gray-500 flex items-center justify-center gap-1.5">
+        🔴 Money Out
+      </button>
+    </div>
+
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1.5">Description</label>
+        <input id="manual-desc" type="text" placeholder="e.g., Customer sales, Transport…" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm" />
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-1.5">Amount (₦)</label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">₦</span>
+          <input id="manual-amount" type="number" placeholder="0.00" min="0" class="w-full border border-gray-200 rounded-xl pl-8 pr-3 py-2.5 text-sm" />
+        </div>
+      </div>
+      <button onclick="addManual()" class="btn-primary w-full py-3 text-sm">
+        ➕ Add to Ledger
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== TRANSACTION LOG ===== -->
+  <div class="section-card p-5 md:p-6">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">📒</span>
+        <div>
+          <h2 class="font-display text-base font-bold text-gray-800" style="font-weight:700;">Today's Ledger</h2>
+          <p class="text-xs text-gray-500">All transactions this session</p>
+        </div>
+      </div>
+      <span id="txn-count" class="badge badge-income">5 entries</span>
+    </div>
+
+    <!-- Table header -->
+    <div class="grid grid-cols-12 text-xs font-bold text-gray-400 uppercase tracking-wider px-3 pb-2 border-b border-gray-100">
+      <div class="col-span-3">Time</div>
+      <div class="col-span-4">Description</div>
+      <div class="col-span-2 text-center">Type</div>
+      <div class="col-span-3 text-right">Amount</div>
+    </div>
+
+    <div id="txn-list" class="txn-list mt-1 space-y-1 max-h-80 overflow-y-auto pr-1">
+      <!-- Rows injected by JS -->
+    </div>
+
+    <div id="txn-empty" class="hidden text-center py-8 text-gray-400 text-sm">
+      <span class="text-3xl block mb-2">📭</span>
+      No transactions yet. Add your first sale!
+    </div>
+  </div>
+
+  <!-- ===== SUMMARY CARDS ===== -->
+  <div class="grid grid-cols-3 gap-3">
+    <div class="summary-card p-4">
+      <div class="mb-2">
+        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Money In</span>
+      </div>
+      <div id="total-in" class="font-display text-lg md:text-xl font-bold" style="color:var(--emerald);font-weight:700;">₦30,000</div>
+      <div class="text-xs text-gray-400 mt-0.5">Total sales</div>
+    </div>
+    <div class="summary-card p-4">
+      <div class="mb-2">
+        <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Money Out</span>
+      </div>
+      <div id="total-out" class="font-display text-lg md:text-xl font-bold" style="color:var(--red);font-weight:700;">₦10,000</div>
+      <div class="text-xs text-gray-400 mt-0.5">Total expenses</div>
+    </div>
+    <div id="net-card" class="summary-card net-positive p-4">
+      <div class="mb-2">
+        <span class="text-xs font-semibold text-white/70 uppercase tracking-wider">Net Profit</span>
+      </div>
+      <div id="net-profit" class="font-display text-lg md:text-xl font-bold text-white" style="font-weight:800;">₦20,000</div>
+      <div class="text-xs text-white/60 mt-0.5">Today's balance</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="text-center py-4 text-xs text-gray-400">
+    <span class="font-semibold" style="color:var(--emerald);">SmartLoja</span> • ICT Olympiad Entry • Built for Nigerian Market Traders 🇳🇬
+  </div>
+
+</main>
+
+<script>
+  // ===== STATE =====
+  let moneyIn = 30000;
+  let moneyOut = 10000;
+  let currentTab = 'in';
+  let lastAiEntry = null;
+
+  const seed = [
+    { time: '07:15 AM', desc: 'Opening stock (Garri & Rice)', type: 'income', amount: 12000 },
+    { time: '08:40 AM', desc: 'Customer sales – beans', type: 'income', amount: 8500 },
+    { time: '09:10 AM', desc: 'Transport to market', type: 'expense', amount: 2500 },
+    { time: '10:05 AM', desc: 'Morning sales – pepper & tomato', type: 'income', amount: 9500 },
+    { time: '11:30 AM', desc: 'Stall rent (daily)', type: 'expense', amount: 7500 },
+  ];
+
+  // ===== INIT =====
+  function init() {
+    // Live date
+    const now = new Date();
+    document.getElementById('live-date').textContent = now.toLocaleDateString('en-NG', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+
+    // Seed transactions
+    seed.forEach(t => appendRow(t.time, t.desc, t.type, t.amount, false));
+    updateSummary();
+  }
+
+  // ===== SUMMARY =====
+  function updateSummary() {
+    const net = moneyIn - moneyOut;
+    document.getElementById('total-in').textContent = '₦' + moneyIn.toLocaleString('en-NG');
+    document.getElementById('total-out').textContent = '₦' + moneyOut.toLocaleString('en-NG');
+    document.getElementById('net-profit').textContent = (net < 0 ? '-₦' : '₦') + Math.abs(net).toLocaleString('en-NG');
+
+    const netCard = document.getElementById('net-card');
+    netCard.className = 'summary-card p-4 ' + (net >= 0 ? 'net-positive' : 'net-negative');
+
+    // Txn count
+    const rows = document.querySelectorAll('.txn-row').length;
+    document.getElementById('txn-count').textContent = rows + ' entr' + (rows === 1 ? 'y' : 'ies');
+  }
+
+  // ===== ROW =====
+  function appendRow(timeStr, desc, type, amount, animate = true) {
+    const list = document.getElementById('txn-list');
+    const div = document.createElement('div');
+    div.className = 'txn-row ' + type + ' grid grid-cols-12 items-center px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors cursor-default';
+    if (animate) div.style.opacity = '0';
+
+    let badge, amountStr;
+    if (type === 'income') {
+      badge = '<span class="badge badge-income">Sale</span>';
+      amountStr = '<span style="color:var(--emerald)" class="font-bold">+₦' + amount.toLocaleString('en-NG') + '</span>';
+    } else if (type === 'expense') {
+      badge = '<span class="badge badge-expense">Expense</span>';
+      amountStr = '<span style="color:var(--red)" class="font-bold">-₦' + amount.toLocaleString('en-NG') + '</span>';
+    } else {
+      badge = '<span class="badge badge-debt">Credit</span>';
+      amountStr = '<span style="color:var(--gold)" class="font-bold">₦' + amount.toLocaleString('en-NG') + '</span>';
+    }
+
+    div.innerHTML = `
+      <div class="col-span-3 text-xs text-gray-400 font-medium">${timeStr}</div>
+      <div class="col-span-4 text-xs text-gray-700 font-medium leading-tight truncate pr-1">${desc}</div>
+      <div class="col-span-2 flex justify-center">${badge}</div>
+      <div class="col-span-3 text-right text-xs">${amountStr}</div>
+    `;
+    list.appendChild(div);
+
+    if (animate) {
+      requestAnimationFrame(() => {
+        div.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+        div.style.opacity = '1';
+      });
+      list.scrollTop = list.scrollHeight;
+    }
+
+    document.getElementById('txn-empty').classList.add('hidden');
+  }
+
+  function nowTime() {
+    return new Date().toLocaleTimeString('en-NG', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  // ===== TABS =====
+  function setTab(tab) {
+    currentTab = tab;
+    document.getElementById('tab-in').className = 'tab-btn flex-1 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5' + (tab === 'in' ? ' active' : ' text-gray-500');
+    document.getElementById('tab-out').className = 'tab-btn flex-1 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5' + (tab === 'out' ? ' active' : ' text-gray-500');
+  }
+
+  // ===== MANUAL ADD =====
+  function addManual() {
+    const desc = document.getElementById('manual-desc').value.trim();
+    const amt = parseFloat(document.getElementById('manual-amount').value);
+    if (!desc) { shake('manual-desc'); return; }
+    if (!amt || amt <= 0) { shake('manual-amount'); return; }
+
+    const type = currentTab === 'in' ? 'income' : 'expense';
+    if (type === 'income') moneyIn += amt;
+    else moneyOut += amt;
+
+    appendRow(nowTime(), desc, type, amt);
+    updateSummary();
+
+    document.getElementById('manual-desc').value = '';
+    document.getElementById('manual-amount').value = '';
+  }
+
+  function shake(id) {
+    const el = document.getElementById(id);
+    el.style.borderColor = 'var(--red)';
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = 'shake 0.3s ease';
+    setTimeout(() => { el.style.borderColor = ''; }, 1500);
+  }
+
+  // ===== VOICE =====
+  function playBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.25);
+    } catch(e) {}
+  }
+
+  function startListening() {
+    playBeep();
+    const btn = document.getElementById('mic-btn');
+    const label = document.getElementById('mic-label');
+    const wave = document.getElementById('listening-wave');
+    const panel = document.getElementById('voice-panel');
+    const result = document.getElementById('ai-result');
+    const loading = document.getElementById('ai-loading');
+
+    btn.disabled = true;
+    // Switch to ear SVG while listening
+    document.getElementById('mic-icon').outerHTML = `<svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18c0-4.4 3.6-8 8-8s8 3.6 8 8"/><path d="M19 18c0 1.1-.9 2-2 2h-1"/><path d="M8 18a4 4 0 0 1 8 0"/><circle cx="11" cy="11" r="2"/></svg>`;
+    label.textContent = 'Listening...';
+    label.style.color = 'var(--emerald)';
+    wave.classList.remove('hidden');
+    wave.classList.add('flex');
+    result.classList.add('hidden');
+    loading.classList.add('hidden');
+
+    setTimeout(() => {
+      btn.disabled = false;
+      // Restore mic SVG
+      document.getElementById('mic-icon').outerHTML = `<svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg>`;
+      label.textContent = 'Tap to Speak';
+      label.style.color = '';
+      wave.classList.add('hidden');
+      wave.classList.remove('flex');
+      panel.classList.remove('hidden');
+      panel.classList.add('fade-up');
+    }, 1800);
+  }
+
+  const voiceData = {
+    rice: {
+      type: '💰 Income',
+      item: '3 Bags of Rice',
+      amount: '₦150,000',
+      status: '✅ Paid (Cash)',
+      txnType: 'income',
+      txnAmount: 150000,
+      txnDesc: 'Sale – 3 bags of rice (cash)'
+    },
+    oil: {
+      type: '📋 Debt (Credit Sale)',
+      item: '2 Gallons of Oil',
+      amount: '₦0 received',
+      status: '⏳ Unpaid (Credit)',
+      txnType: 'debt',
+      txnAmount: 0,
+      txnDesc: 'Credit sale – 2 gallons of oil (unpaid)'
+    },
+    security: {
+      type: '💸 Expense',
+      item: 'Market Security & Cleanup',
+      amount: '₦5,000',
+      status: '✅ Paid',
+      txnType: 'expense',
+      txnAmount: 5000,
+      txnDesc: 'Market security & cleanup fee'
+    }
+  };
+
+  function processVoice() {
+    const sel = document.getElementById('voice-select').value;
+    if (!sel) return;
+
+    const panel = document.getElementById('voice-panel');
+    const loading = document.getElementById('ai-loading');
+    const result = document.getElementById('ai-result');
+
+    panel.classList.add('hidden');
+    loading.classList.remove('hidden');
+    result.classList.add('hidden');
+
+    setTimeout(() => {
+      loading.classList.add('hidden');
+      const d = voiceData[sel];
+      lastAiEntry = d;
+
+      document.getElementById('ai-type').textContent = d.type;
+      document.getElementById('ai-item').textContent = d.item;
+      document.getElementById('ai-amount').textContent = d.amount;
+      document.getElementById('ai-status').textContent = d.status;
+
+      result.classList.remove('hidden');
+      result.classList.add('fade-up');
+    }, 1600);
+  }
+
+  function addAiToLedger() {
+    if (!lastAiEntry) return;
+    const d = lastAiEntry;
+
+    if (d.txnType === 'income') moneyIn += d.txnAmount;
+    else if (d.txnType === 'expense') moneyOut += d.txnAmount;
+
+    appendRow(nowTime(), d.txnDesc, d.txnType, d.txnAmount);
+    updateSummary();
+
+    document.getElementById('add-ai-btn').textContent = '✅ Added!';
+    document.getElementById('add-ai-btn').disabled = true;
+    document.getElementById('add-ai-btn').style.background = '#059669';
+
+    setTimeout(() => {
+      document.getElementById('ai-result').classList.add('hidden');
+      document.getElementById('voice-panel').classList.add('hidden');
+      document.getElementById('voice-panel').classList.remove('fade-up');
+      document.getElementById('voice-select').value = '';
+      document.getElementById('add-ai-btn').textContent = '➕ Add to My Ledger';
+      document.getElementById('add-ai-btn').disabled = false;
+      document.getElementById('add-ai-btn').style.background = '';
+      lastAiEntry = null;
+    }, 2000);
+  }
+
+  init();
+</script>
+</body>
+</html>
